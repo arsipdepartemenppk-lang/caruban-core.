@@ -1,0 +1,107 @@
+{
+  "entities": {
+    "PK": {
+      "title": "PK",
+      "description": "Data Master PK",
+      "type": "object",
+      "properties": {
+        "idPK": { "type": "string" },
+        "namaPK": { "type": "string" },
+        "kecamatan": { "type": "string" },
+        "zona": { "type": "string" },
+        "koorzon": { "type": "string" },
+        "namaKetua": { "type": "string" },
+        "noHp": { "type": "string" },
+        "status": { "type": "string", "enum": ["aktif", "non aktif", "vakum"] }
+      },
+      "required": ["idPK", "namaPK", "kecamatan", "status"]
+    },
+    "Visitasi": {
+      "title": "Visitasi",
+      "description": "Data Visitasi",
+      "type": "object",
+      "properties": {
+        "tanggalVisitasi": { "type": "string", "format": "date-time" },
+        "email": { "type": "string", "format": "email" },
+        "idPK": { "type": "string" },
+        "agenda": { "type": "string" },
+        "koordinatGps": { "type": "string" },
+        "fotoAudit": { "type": "string" },
+        "skorPenilaian": { "type": "number" },
+        "jumlahKader": { "type": "number" },
+        "masalahUtama": { "type": "string" },
+        "saranAdvokasi": { "type": "string" }
+      },
+      "required": ["tanggalVisitasi", "idPK"]
+    },
+    "Anggota": {
+      "title": "Anggota",
+      "description": "Data Anggota",
+      "type": "object",
+      "properties": {
+        "namaLengkap": { "type": "string" },
+        "tempatLahir": { "type": "string" },
+        "tanggalLahir": { "type": "string", "format": "date" },
+        "noHp": { "type": "string" },
+        "namaSekolah": { "type": "string" },
+        "alamatSekolah": { "type": "string" },
+        "tingkat": { "type": "string" },
+        "domisili": { "type": "string" },
+        "minatBakat": { "type": "string" }
+      },
+      "required": ["namaLengkap", "tanggalLahir"]
+    },
+    "Surat": {
+      "title": "Surat",
+      "description": "Data Surat",
+      "type": "object",
+      "properties": {
+        "noSurat": { "type": "string" },
+        "perihal": { "type": "string" },
+        "tanggal": { "type": "string", "format": "date" },
+        "status": { "type": "string" }
+      },
+      "required": ["noSurat", "perihal", "tanggal", "status"]
+    },
+    "Pimpinan": {
+      "title": "Pimpinan",
+      "description": "Data Pimpinan",
+      "type": "object",
+      "properties": {
+        "namaLembaga": { "type": "string" },
+        "namaKetua": { "type": "string" },
+        "noHp": { "type": "string" },
+        "alamatDomisili": { "type": "string" },
+        "periode": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["namaLembaga", "namaKetua", "status"]
+    },
+    "User": {
+      "title": "User",
+      "description": "Data User",
+      "type": "object",
+      "properties": {
+        "role": { "type": "string", "enum": ["admin", "pimpinan", "anggota"] }
+      },
+      "required": ["role"]
+    }
+  },
+  "firestore": {
+    "/pks/{pkId}": { "schema": "PK", "description": "Koleksi data PK" },
+    "/visitasis/{visitasiId}": { "schema": "Visitasi", "description": "Koleksi data Visitasi" },
+    "/members/{memberId}": { "schema": "Anggota", "description": "Koleksi data Anggota" },
+    "/suratMasuk/{suratId}": { "schema": "Surat", "description": "Koleksi Surat Masuk" },
+    "/suratKeluar/{suratId}": { "schema": "Surat", "description": "Koleksi Surat Keluar" },
+    "/pimpinan/{pimpinanId}": { "schema": "Pimpinan", "description": "Koleksi data Pimpinan" },
+    "/agendas/{agendaId}": { "schema": "object", "description": "Koleksi data Agenda" },
+    "/internal_posts/{postId}": { "schema": "object", "description": "Koleksi postingan internal" },
+    "/chats/{chatId}": { "schema": "object", "description": "Koleksi pesan chat" },
+    "/kaderisasi/{id}": { "schema": "object", "description": "Koleksi data kaderisasi" },
+    "/beasiswa/{id}": { "schema": "object", "description": "Koleksi info beasiswa" },
+    "/templates/{id}": { "schema": "object", "description": "Koleksi template surat" },
+    "/kas_inventaris/{id}": { "schema": "object", "description": "Koleksi data inventaris" },
+    "/kas_transaksi/{id}": { "schema": "object", "description": "Koleksi transaksi kas" },
+    "/users/{userId}": { "schema": "User", "description": "Koleksi data User" }
+  }
+}

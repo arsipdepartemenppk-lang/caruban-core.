@@ -1,0 +1,185 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() { return request.auth != null; }
+    
+    function isAdmin() {
+      return isAuthenticated() &&
+        ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
+          (request.auth.token.email == "arsipdepartemenppk@gmail.com"));
+    }
+
+    function isPimpinan() {
+      return isAuthenticated() &&
+        ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'pimpinan') || isAdmin());
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidString(val, maxLen) {
+      return val is string && val.size() <= maxLen;
+    }
+
+    function isValidStringRange(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidUrl(url) {
+      return url is string && (url.matches("^https://.*") || url.matches("^http://.*"));
+    }
+
+    function isRecent(ts) {
+      return ts is string && request.time - timestamp(ts) < duration.value(24, 'h');
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    
+    function isValidPK(data) {
+      return hasRequiredFields(['pkId', 'namaPK', 'kecamatan', 'status', 'organisasi', 'createdAt']) &&
+             isValidStringRange(data.pkId, 3, 100) &&
+             isValidStringRange(data.namaPK, 3, 100) &&
+             isValidStringRange(data.kecamatan, 3, 100) &&
+             data.status in ['Aktif', 'Non Aktif', 'Vakum'] &&
+             data.organisasi in ['IPNU', 'IPPNU'] &&
+             isRecent(data.createdAt);
+    }
+
+    function isValidVisitasi(data) {
+      return hasRequiredFields(['visitasiId', 'idPK', 'email', 'status', 'createdAt']) &&
+             isValidStringRange(data.visitasiId, 3, 50) &&
+             isValidStringRange(data.idPK, 3, 100) &&
+             isValidEmail(data.email) &&
+             data.status in ['Terlaksana', 'Belum Terlaksana'] &&
+             isRecent(data.createdAt);
+    }
+
+    function isValidUser(data) {
+      return hasRequiredFields(['role']) &&
+             data.role in ['admin', 'pimpinan', 'anggota'];
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+    
+    // Administrative Collections
+    match /pks/{pkId} {
+      allow read: if isAuthenticated();
+      allow create: if (isAdmin() || isPimpinan()) && isValidPK(request.resource.data);
+      allow update: if (isAdmin() || isPimpinan()) && isValidPK(request.resource.data);
+      allow delete: if isAdmin();
+    }
+    
+    match /visitasis/{visitasiId} {
+      allow read: if isAuthenticated();
+      allow create: if (isAdmin() || isPimpinan()) && isValidVisitasi(request.resource.data);
+      allow update: if (isAdmin() || isPimpinan()) && isValidVisitasi(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /members/{memberId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && isValidString(request.resource.data.nama, 100);
+      allow delete: if isAdmin() || isPimpinan();
+    }
+
+    match /suratMasuk/{suratId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isPimpinan();
+    }
+
+    match /suratKeluar/{suratId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isPimpinan();
+    }
+
+    match /pimpinan/{pimpinanId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isPimpinan();
+    }
+
+    match /agendas/{agendaId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isPimpinan();
+    }
+
+    // Social Media Features
+    match /internal_posts/{postId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidString(request.resource.data.content, 2000) && isRecent(request.resource.data.createdAt);
+      allow update: if isAuthenticated() && (
+        request.auth.uid == resource.data.authorUid || 
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'comments'])
+      );
+      allow delete: if isAuthenticated() && (request.auth.uid == resource.data.authorUid || isAdmin());
+    }
+
+    match /stories/{storyId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidString(request.resource.data.mediaUrl, 1000) && isRecent(request.resource.data.createdAt);
+      allow delete: if isAuthenticated() && (request.auth.uid == resource.data.authorUid || isAdmin());
+    }
+
+    // Extra Features
+    match /chats/{chatId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidString(request.resource.data.text, 5000);
+      allow update, delete: if isAdmin();
+    }
+
+    match /kaderisasi/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isPimpinan();
+    }
+
+    match /beasiswa/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /templates/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isPimpinan();
+    }
+
+    match /kas_inventaris/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isPimpinan();
+    }
+
+    match /kas_transaksi/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isPimpinan();
+    }
+
+    // User Management
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.uid == userId && isValidUser(request.resource.data) && (request.resource.data.role == 'anggota' || isAdmin());
+      allow update: if isAuthenticated() && (request.auth.uid == userId || isAdmin()) && isValidUser(request.resource.data);
+      allow delete: if isAdmin();
+    }
+  }
+}
